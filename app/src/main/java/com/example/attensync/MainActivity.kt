@@ -2,37 +2,98 @@ package com.example.attensync
 
 import android.os.Bundle
 import android.view.Menu
-import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.navigation.NavigationView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.appcompat.app.AppCompatActivity
 import com.example.attensync.databinding.ActivityMainBinding
-import android.app.AppOpsManager
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
-import android.provider.Settings
-import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.example.attensync.utilities.FocusTrackingService // Update if your package is different!
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.material.navigation.NavigationView
+import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import android.widget.ImageView
+import com.bumptech.glide.Glide
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
 
+    // --- 1. THE GOOGLE AUTH VARIABLES ---
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private lateinit var auth: FirebaseAuth
+
+    // --- 2. THE LOGIN LAUNCHER (Must be outside onCreate to prevent crashes) ---
+    private val signInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)!!
+                firebaseAuthWithGoogle(account.idToken!!)
+            } catch (e: ApiException) {
+                Toast.makeText(this, "Google Sign-In failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun updateNavigationHeader() {
+        val navigationView: NavigationView = binding.navView
+
+        // Safeguard to prevent crashes if the header isn't ready
+        if (navigationView.headerCount > 0) {
+            val headerView = navigationView.getHeaderView(0)
+
+            val navName: TextView? = headerView.findViewById(R.id.nav_header_name)
+            val navEmail: TextView? = headerView.findViewById(R.id.nav_header_email)
+
+            val currentUser = FirebaseAuth.getInstance().currentUser
+
+            if (currentUser != null) {
+                navName?.text = currentUser.displayName ?: "AttenSync User"
+                navEmail?.text = currentUser.email ?: "No email provided"
+
+                // Find the image view (your nav_header_main.xml uses the ID 'imageView')
+                val navImage: ImageView? = headerView.findViewById(R.id.imageView)
+
+                // Tell Glide to load the Google photo and make it a perfect circle!
+                if (navImage != null && currentUser.photoUrl != null) {
+                    Glide.with(this)
+                        .load(currentUser.photoUrl)
+                        .circleCrop()
+                        .into(navImage)
+                }
+            } else {
+                navName?.text = getString(R.string.nav_guest_name)
+                navEmail?.text = getString(R.string.nav_guest_email)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.google.firebase.FirebaseApp.initializeApp(this)
+        auth = FirebaseAuth.getInstance()
+        // --- 3. INITIALIZE GOOGLE AND FIREBASE ---
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(getString(R.string.default_web_client_id))
+                    .requestEmail()
+                    .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+
 
         setSupportActionBar(binding.appBarMain.toolbar)
 
@@ -43,26 +104,58 @@ class MainActivity : AppCompatActivity() {
         }
         val drawerLayout: DrawerLayout = binding.drawerLayout
         val navView: NavigationView = binding.navView
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
+
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main)
+                    as androidx.navigation.fragment.NavHostFragment
+
+        val navController = navHostFragment.navController
+
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.nav_dashboard, R.id.nav_calender, R.id.nav_discussion,R.id.nav_notification,R.id.nav_report,R.id.nav_leaderboard,R.id.nav_redeem
+                R.id.nav_dashboard, R.id.nav_calender, R.id.nav_discussion, R.id.nav_notification, R.id.nav_report, R.id.nav_leaderboard, R.id.nav_redeem
             ), drawerLayout
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+
+        // --- 4. THE AUTO-TRIGGER ---
+        // Only launch sign-in on first create (not on rotation/config change)
+        if (auth.currentUser == null) {
+            if (savedInstanceState == null) {
+                signInLauncher.launch(googleSignInClient.signInIntent)
+            }
+        } else {
+            updateNavigationHeader()
+        }
+    }
+
+    // --- 5. THE FIREBASE LINKING LOGIC ---
+    private fun firebaseAuthWithGoogle(idToken: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    Toast.makeText(this, "Welcome, ${user?.displayName}", Toast.LENGTH_SHORT).show()
+                    updateNavigationHeader() // Update the side menu instantly!
+                } else {
+                    Toast.makeText(this, "Firebase Auth Failed.", Toast.LENGTH_SHORT).show()
+                }
+            }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.main, menu)
         return true
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main)
+                    as androidx.navigation.fragment.NavHostFragment
+
+        val navController = navHostFragment.navController
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 }

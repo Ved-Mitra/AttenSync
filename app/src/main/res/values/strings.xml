@@ -16,4 +16,8 @@
     <string name="menu_leaderboard">Leaderboard</string>
     <string name="distraction_warning">⚠️ You\'ve been distracted!</string>
     <string name="distraction_message">Your time is running low. Time to get back to work.</string>
+    <string name="default_web_client_id">473923126511-m0lrdehfij7qu6cef76mplaebhkvhan3.apps.googleusercontent.com</string>
+    <string name="nav_guest_name">Guest</string>
+    <string name="nav_guest_email">Please log in</string>
+    <string name="welcome_text">Welcome back !!\n</string>
 </resources>

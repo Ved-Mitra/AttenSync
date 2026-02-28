@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "473923126511",
+    "project_id": "attensync-6d602",
+    "storage_bucket": "attensync-6d602.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:473923126511:android:4c7a0ed76d539a3c46c71a",
+        "android_client_info": {
+          "package_name": "com.example.attensync"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "473923126511-o5k60c63mp43coasn0plfnd1nr2v0hor.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.attensync",
+            "certificate_hash": "f03db2c284b015b0d05f8ac8667c1180b113aa62"
+          }
+        },
+        {
+          "client_id": "473923126511-m0lrdehfij7qu6cef76mplaebhkvhan3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCoZI2R1KyhrIa9bDfJxBFXsoiSvvZWFGU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "473923126511-m0lrdehfij7qu6cef76mplaebhkvhan3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
