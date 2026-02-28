@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.app.usage.UsageEvents
+import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -107,19 +108,37 @@ class FocusTrackingService : Service() {
     private fun getForegroundPackageName(): String? {
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
-        val startTime = endTime - 1000 * 10
+        val startTime = endTime - 1000 * 60
 
         val usageEvents = usageStatsManager.queryEvents(startTime, endTime)
         val event = UsageEvents.Event()
         var currentForegroundApp: String? = null
+        var currentForegroundTime = 0L
 
         while (usageEvents.hasNextEvent()) {
             usageEvents.getNextEvent(event)
-            if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
+            val isForegroundEvent = event.eventType == UsageEvents.Event.ACTIVITY_RESUMED ||
+                event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND
+            if (isForegroundEvent && event.timeStamp > currentForegroundTime) {
+                currentForegroundTime = event.timeStamp
                 currentForegroundApp = event.packageName
             }
         }
-        return currentForegroundApp
+
+        if (currentForegroundApp != null) {
+            return currentForegroundApp
+        }
+
+        val usageStats = usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY,
+            endTime - 1000 * 60 * 5,
+            endTime
+        )
+        val mostRecent = usageStats
+            .filter { it.lastTimeUsed > 0 }
+            .maxByOrNull(UsageStats::getLastTimeUsed)
+
+        return mostRecent?.packageName
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

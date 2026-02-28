@@ -118,9 +118,10 @@ class DashboardFragment : Fragment() {
                     showUsageAccessDialog()
                     return@setOnClickListener
                 }
-                if (!hasNotificationPermission()) {
+
+                val shouldRequestNotification = !hasNotificationPermission()
+                if (shouldRequestNotification) {
                     notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                    return@setOnClickListener
                 }
 
                 val selectedPackages = collectSelectedPackages(appsContainer)
@@ -134,7 +135,15 @@ class DashboardFragment : Fragment() {
 
                 viewModel.saveReminderConfig(safeMinutes, selectedPackages)
                 ReminderScheduler.applySettings(requireContext(), safeMinutes, selectedPackages)
-                Toast.makeText(requireContext(), "Reminder saved", Toast.LENGTH_SHORT).show()
+                if (shouldRequestNotification) {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.notification_permission_needed),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(requireContext(), "Reminder saved", Toast.LENGTH_SHORT).show()
+                }
                 dialog.dismiss()
             }
         }
