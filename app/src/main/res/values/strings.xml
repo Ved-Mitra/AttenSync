@@ -20,4 +20,19 @@
     <string name="nav_guest_name">Guest</string>
     <string name="nav_guest_email">Please log in</string>
     <string name="welcome_text">Welcome back !!\n</string>
+
+    <string name="set_remider">Set Remider</string>
+    <string name="reminder_interval_label">Reminder interval</string>
+    <string name="monitor_apps_label">Monitor apps</string>
+    <string name="apps_loading">Loading apps...</string>
+    <string name="reminder_save">Save</string>
+    <string name="reminder_cancel">Cancel</string>
+    <string name="reminder_notification_title">AttenSync Reminder</string>
+    <string name="reminder_notification_text">Attention Decreased, go back to work</string>
+    <string name="notifications_title">Recent reminders</string>
+    <string name="notifications_empty">No reminders yet.</string>
+    <string name="usage_access_title">Allow usage access</string>
+    <string name="usage_access_message">Enable Usage Access so AttenSync can detect distraction apps.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="notification_permission_needed">Enable notifications to receive reminders.</string>
 </resources>

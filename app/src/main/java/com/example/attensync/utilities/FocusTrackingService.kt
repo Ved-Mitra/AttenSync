@@ -12,6 +12,10 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.example.attensync.R
+import com.example.attensync.utilities.reminder.ReminderNotification
+import com.example.attensync.utilities.reminder.ReminderNotificationStore
+import com.example.attensync.utilities.reminder.ReminderStore
 import kotlinx.coroutines.*
 
 class FocusTrackingService : Service() {
@@ -19,15 +23,9 @@ class FocusTrackingService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
     private var isTracking = false
 
-    // MVP Mock Database: Package Name -> Threshold limit in seconds
-    // In a full app, you would fetch these numbers from SharedPreferences or Room DB
-    private val appThresholds = mapOf(
-        "com.instagram.android" to 15, // 15 seconds for testing
-        "com.zhiliaoapp.musically" to 20, // TikTok
-        "com.google.android.youtube" to 30
-    )
-
-    private var currentSessionSeconds = 0
+    private var currentForegroundPackage: String? = null
+    private var currentForegroundSeconds = 0
+    private val pollIntervalSeconds = 5
 
     override fun onCreate() {
         super.onCreate()
@@ -47,50 +45,63 @@ class FocusTrackingService : Service() {
     private fun startTrackingLoop() {
         serviceScope.launch {
             while (isActive) {
+                val monitoredPackages = ReminderStore.loadMonitoredPackages(this@FocusTrackingService)
+                val intervalMinutes = ReminderStore.loadIntervalMinutes(this@FocusTrackingService)
+                val intervalSeconds = intervalMinutes * 60
+
                 val foregroundApp = getForegroundPackageName()
 
-                if (foregroundApp != null && appThresholds.containsKey(foregroundApp)) {
-                    currentSessionSeconds += 5 // Checking every 5 seconds
-                    val limit = appThresholds[foregroundApp] ?: 9999
+                if (foregroundApp != null
+                    && monitoredPackages.contains(foregroundApp)
+                    && intervalSeconds > 0
+                ) {
+                    if (currentForegroundPackage != foregroundApp) {
+                        currentForegroundPackage = foregroundApp
+                        currentForegroundSeconds = 0
+                    }
 
-                    if (currentSessionSeconds >= limit) {
-                        Log.d("FocusTracker", "Threshold hit! Pushing notification.")
+                    currentForegroundSeconds += pollIntervalSeconds
+                    if (currentForegroundSeconds >= intervalSeconds) {
+                        Log.d("FocusTracker", "Reminder interval hit, pushing notification.")
                         pushWarningNotification(foregroundApp)
-
-                        // Reset so we don't spam them with 100 notifications a minute
-                        currentSessionSeconds = -60
+                        currentForegroundSeconds = 0
                     }
                 } else {
-                    currentSessionSeconds = 0 // Reset if they leave the app
+                    currentForegroundPackage = null
+                    currentForegroundSeconds = 0
                 }
 
-                delay(5000)
+                delay(pollIntervalSeconds * 1000L)
             }
         }
     }
 
     private fun pushWarningNotification(packageName: String) {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        // Make the package name look pretty for the notification
-        val appName = when(packageName) {
-            "com.instagram.android" -> "Instagram"
-            "com.zhiliaoapp.musically" -> "TikTok"
-            "com.google.android.youtube" -> "YouTube"
-            else -> "this app"
+        val appName = try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(appInfo).toString()
+        } catch (e: Exception) {
+            "this app"
         }
 
+        val message = getString(R.string.reminder_notification_text)
         val notification = NotificationCompat.Builder(this, "AlertChannel")
-            .setSmallIcon(android.R.drawable.ic_dialog_alert) // Built-in Android warning icon
-            .setContentTitle("AttentionOS Alert ⏳")
-            .setContentText("You've exceeded your daily limit for $appName.")
-            .setPriority(NotificationCompat.PRIORITY_HIGH) // Forces it to drop down from the top of the screen
-            .setDefaults(NotificationCompat.DEFAULT_ALL) // Sound and vibration
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(getString(R.string.reminder_notification_title))
+            .setContentText(message)
+            .setSubText(appName)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .build()
 
-        // Use a random ID so multiple notifications can stack if needed
         manager.notify(System.currentTimeMillis().toInt(), notification)
+
+        ReminderNotificationStore.addNotification(
+            this,
+            ReminderNotification(appName, message, System.currentTimeMillis())
+        )
     }
 
     private fun getForegroundPackageName(): String? {
