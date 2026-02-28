@@ -35,4 +35,16 @@
     <string name="usage_access_message">Enable Usage Access so AttenSync can detect distraction apps.</string>
     <string name="open_settings">Open settings</string>
     <string name="notification_permission_needed">Enable notifications to receive reminders.</string>
+
+    <string name="discussion_default_topic">General</string>
+    <string name="change_topic">Change topic</string>
+    <string name="message_input_hint">Type a message</string>
+    <string name="send_message">Send</string>
+
+    <string name="select_topic">Select a topic</string>
+    <string name="topic_cs">Computer Science</string>
+    <string name="topic_ee">Electrical Engineering</string>
+    <string name="topic_me">Mechanical Engineering</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
 </resources>

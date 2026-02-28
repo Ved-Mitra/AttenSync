@@ -58,4 +58,8 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.socket.io.client) {
+        exclude(group = "org.json", module = "json")
+    }
 }
