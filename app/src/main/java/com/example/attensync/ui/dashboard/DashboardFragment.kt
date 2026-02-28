@@ -4,6 +4,7 @@ import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -16,11 +17,12 @@ import android.widget.TimePicker
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.core.text.HtmlCompat
 import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.attensync.R
 import com.example.attensync.databinding.FragmentDashboardBinding
 import com.example.attensync.utilities.reminder.MonitoredApp
@@ -33,12 +35,17 @@ class DashboardFragment : Fragment() {
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
     private lateinit var viewModel: DashboardViewModel
+    private var screenTimeState: ScreenTimeUiState? = null
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
-            Toast.makeText(requireContext(), getString(R.string.notification_permission_needed), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.notification_permission_needed),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -54,27 +61,130 @@ class DashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         try {
-            // 1. Get the current logged-in user safely
             val auth = FirebaseAuth.getInstance()
             val currentUser = auth.currentUser
-
-            // 2. Extract just their first name
             val userName = currentUser?.displayName?.split(" ")?.get(0) ?: "Hacker"
-
-            // 3. Format and Apply the string
             val welcomeMessage = "Welcome back, \n<b>$userName</b>!"
             binding.textDashboardTitle.text = HtmlCompat.fromHtml(
                 welcomeMessage,
                 HtmlCompat.FROM_HTML_MODE_LEGACY
             )
         } catch (e: Exception) {
-            // If Firebase isn't ready yet, just show a generic message
             binding.textDashboardTitle.text = "Welcome back!"
         }
 
         binding.buttonSetReminder.setOnClickListener {
             showReminderDialog()
         }
+
+        bindPoints()
+        bindScreenTime()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshScreenTime()
+        viewModel.refreshPoints()
+    }
+
+    private fun bindPoints() {
+        viewModel.points.observe(viewLifecycleOwner) { points ->
+            binding.textDashboardPoints.text = getString(R.string.points_format, points)
+        }
+    }
+
+    private fun bindScreenTime() {
+        binding.screenTimeCard.setOnClickListener {
+            val currentState = screenTimeState ?: return@setOnClickListener
+            if (!currentState.hasUsageAccess) {
+                showUsageAccessDialog()
+                return@setOnClickListener
+            }
+            if (currentState.entries.isEmpty()) {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.screen_time_no_usage),
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+            showScreenTimeDetailsDialog(currentState.entries)
+        }
+
+        viewModel.screenTimeUiState.observe(viewLifecycleOwner) { state ->
+            screenTimeState = state
+            binding.screenTimeTotal.text = state.totalText
+            renderScreenTimeSegments(state.entries, state.totalMillis)
+            binding.screenTimeHint.text = when {
+                !state.hasUsageAccess -> getString(R.string.screen_time_permission_needed)
+                !state.hasMonitoredApps -> getString(R.string.screen_time_no_monitored)
+                state.entries.isEmpty() -> getString(R.string.screen_time_no_usage)
+                else -> getString(R.string.screen_time_tap_to_view)
+            }
+        }
+    }
+
+    private fun renderScreenTimeSegments(entries: List<ScreenTimeEntryUi>, totalMillis: Long) {
+        val container = binding.screenTimeSegments
+        container.removeAllViews()
+        if (entries.isEmpty() || totalMillis <= 0L) {
+            val fallback = View(requireContext()).apply {
+                setBackgroundColor(Color.parseColor("#B0BEC5"))
+            }
+            container.addView(
+                fallback,
+                LinearLayout.LayoutParams(0, dpToPx(10)).apply { weight = 1f }
+            )
+            return
+        }
+
+        val palette = listOf(
+            "#42A5F5",
+            "#66BB6A",
+            "#FFCA28",
+            "#AB47BC",
+            "#EF5350",
+            "#26C6DA",
+            "#FFA726",
+            "#8D6E63"
+        ).map { Color.parseColor(it) }
+
+        entries.forEachIndexed { index, entry ->
+            val segment = View(requireContext()).apply {
+                setBackgroundColor(palette[index % palette.size])
+            }
+            val weight = entry.totalMillis.toFloat().coerceAtLeast(1f)
+            val params = LinearLayout.LayoutParams(0, dpToPx(10)).apply {
+                this.weight = weight
+                if (index < entries.lastIndex) {
+                    marginEnd = dpToPx(4)
+                }
+            }
+            container.addView(segment, params)
+        }
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        val density = resources.displayMetrics.density
+        return (dp * density).toInt()
+    }
+
+    private fun showScreenTimeDetailsDialog(entries: List<ScreenTimeEntryUi>) {
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_screen_time_details, null)
+        val recyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(
+            R.id.screenTimeDetailsList
+        )
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        val adapter = ScreenTimeDetailsAdapter(requireContext().packageManager)
+        recyclerView.adapter = adapter
+        adapter.submitList(entries)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.screen_time_details_title)
+            .setView(dialogView)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun showReminderDialog() {
@@ -154,7 +264,6 @@ class DashboardFragment : Fragment() {
 
         dialog.show()
 
-        // Ensure the list is current when the dialog is opened.
         viewModel.refreshApps()
     }
 
@@ -238,5 +347,6 @@ class DashboardFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        screenTimeState = null
     }
 }

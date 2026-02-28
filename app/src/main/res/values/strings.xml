@@ -47,4 +47,20 @@
     <string name="topic_me">Mechanical Engineering</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
+
+    <string name="screen_time_title">Screen time today</string>
+    <string name="screen_time_tap_to_view">Tap to view app times</string>
+    <string name="screen_time_permission_needed">Usage access required. Tap to enable.</string>
+    <string name="screen_time_no_monitored">No monitored apps selected</string>
+    <string name="screen_time_no_usage">No usage recorded yet</string>
+    <string name="screen_time_details_title">App screen time</string>
+    <string name="screen_time_zero">0m</string>
+
+    <string name="points_default">Points: 0</string>
+    <string name="points_format">Points: %1$d</string>
+    <string name="leaderboard_points_label">Your points</string>
+    <string name="leaderboard_offline">Offline: showing cached results</string>
+    <string name="leaderboard_not_updated">Not updated yet</string>
+    <string name="leaderboard_empty">No leaderboard data yet</string>
+    <string name="leaderboard_points_zero">0</string>
 </resources>
