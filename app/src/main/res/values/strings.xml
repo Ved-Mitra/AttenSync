@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">AttenSync</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="menu_dashboard">Dashboard</string>
+    <string name="menu_report">Report</string>
+    <string name="menu_calender">Calender</string>
+    <string name="menu_notification">Notifications</string>
+    <string name="menu_discussion">Discussion</string>
+    <string name="menu_redeem">Redeem Store</string>
+    <string name="menu_leaderboard">Leaderboard</string>
+    <string name="distraction_warning">⚠️ You\'ve been distracted!</string>
+    <string name="distraction_message">Your time is running low. Time to get back to work.</string>
+</resources>
