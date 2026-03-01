@@ -39,8 +39,6 @@ The app requires the following key permissions to be granted:
 4.  Start the server: `npm start`.
     * *Default port is 8080 unless specified in environment variables.*
 
-### Android Configuration
-Update `LeaderboardService.BASE_URL` in the Android source code to point to your specific server address before building the APK.
 
 ## 🧪 Testing
 
