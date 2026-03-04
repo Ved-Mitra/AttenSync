@@ -1,4 +1,4 @@
-package com.example.attensync.util
+package com.example.attensync.utilities
 
 import com.example.attensync.data.model.Assignment
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential

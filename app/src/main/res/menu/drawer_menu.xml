@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_dashboard"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="Dashboard" />
+        <item
+            android:id="@+id/nav_calendar"
+            android:icon="@android:drawable/ic_menu_my_calendar"
+            android:title="Calendar" />
+        <item
+            android:id="@+id/nav_discussion"
+            android:icon="@android:drawable/stat_notify_chat"
+            android:title="Discussion" />
+        <item
+            android:id="@+id/nav_notifications"
+            android:icon="@android:drawable/ic_popup_reminder"
+            android:title="Notifications" />
+        <item
+            android:id="@+id/nav_report"
+            android:icon="@android:drawable/ic_menu_sort_by_size"
+            android:title="Report" />
+        <item
+            android:id="@+id/nav_leaderboard"
+            android:icon="@android:drawable/btn_star"
+            android:title="Leaderboard" />
+        <item
+            android:id="@+id/nav_store"
+            android:icon="@android:drawable/ic_menu_view"
+            android:title="Redeem Store" />
+    </group>
+
+    <item android:title="Account">
+        <menu>
+            <item
+                android:id="@+id/nav_sign_out"
+                android:icon="@android:drawable/ic_menu_close_clear_cancel"
+                android:title="Sign Out" />
+        </menu>
+    </item>
+</menu>

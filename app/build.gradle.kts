@@ -57,6 +57,8 @@ dependencies {
     implementation(libs.google.api.client.android)
     implementation(libs.google.api.services.classroom)
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
     implementation(libs.play.services.auth)
     implementation("com.google.android.gms:play-services-auth:21.0.1")
     testImplementation(libs.junit)
