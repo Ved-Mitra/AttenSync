@@ -12,8 +12,7 @@ object ReminderAppProvider {
         val queryFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             PackageManager.MATCH_ALL
         } else {
-            @Suppress("DEPRECATION")
-            PackageManager.MATCH_DEFAULT_ONLY
+            0
         }
         val activities = pm.queryIntentActivities(launchIntent, queryFlags)
         val monitored = ReminderStore.loadMonitoredPackages(context)
@@ -25,7 +24,7 @@ object ReminderAppProvider {
                 val label = try {
                     val appInfo = pm.getApplicationInfo(packageName, 0)
                     pm.getApplicationLabel(appInfo).toString()
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
                 label?.let {

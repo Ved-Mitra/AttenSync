@@ -14,6 +14,7 @@
     <string name="menu_discussion">Discussion</string>
     <string name="menu_redeem">Redeem Store</string>
     <string name="menu_leaderboard">Leaderboard</string>
+    <string name="menu_sign_out">Sign out</string>
     <string name="distraction_warning">⚠️ You\'ve been distracted!</string>
     <string name="distraction_message">Your time is running low. Time to get back to work.</string>
     <string name="default_web_client_id">473923126511-m0lrdehfij7qu6cef76mplaebhkvhan3.apps.googleusercontent.com</string>
@@ -45,6 +46,11 @@
     <string name="topic_cs">Computer Science</string>
     <string name="topic_ee">Electrical Engineering</string>
     <string name="topic_me">Mechanical Engineering</string>
+    <string name="topic_bioengineering">Bioengineering</string>
+    <string name="topic_physics">Physics</string>
+    <string name="topic_chemistry">Chemistry</string>
+    <string name="topic_chemical_engineering">Chemical Engineering</string>
+    <string name="topic_materials_engineering">Materials Engineering</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
 
@@ -63,4 +69,13 @@
     <string name="leaderboard_not_updated">Not updated yet</string>
     <string name="leaderboard_empty">No leaderboard data yet</string>
     <string name="leaderboard_points_zero">0</string>
+
+    <string name="reminder_selected_apps">Selected apps</string>
+    <string name="reminder_selected_empty">No apps selected yet</string>
+    <string name="reminder_other_apps">Other apps</string>
+    <string name="reminder_other_empty">No other apps available</string>
+    <string name="reminder_usage_format">Usage today: %1$s</string>
+    <string name="reminder_usage_empty">No usage yet</string>
+    <string name="reminder_limit_format">Limit: %1$s</string>
+    <string name="reminder_time_picker_title">Set time for %1$s</string>
 </resources>

@@ -8,7 +8,7 @@ object SocketManager {
 
     private var mSocket: Socket? = null
     // Replace with your server URL
-    private const val SERVER_URL = "http://10.0.2.2:3000" 
+    private const val SERVER_URL = "https://attensync-backend.onrender.com"
 
     fun getSocket(): Socket {
         if (mSocket == null) {

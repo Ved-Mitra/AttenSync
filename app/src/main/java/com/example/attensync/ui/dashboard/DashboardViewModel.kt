@@ -27,8 +27,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _points = MutableLiveData(0)
     val points: LiveData<Int> = _points
 
-    private val _reminderIntervalMinutes = MutableLiveData<Int>()
-    val reminderIntervalMinutes: LiveData<Int> = _reminderIntervalMinutes
+    private val _reminderIntervals = MutableLiveData<Map<String, Int>>()
+    val reminderIntervals: LiveData<Map<String, Int>> = _reminderIntervals
 
     private val _monitoredApps = MutableLiveData<List<MonitoredApp>>()
     val monitoredApps: LiveData<List<MonitoredApp>> = _monitoredApps
@@ -46,8 +46,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun loadReminderConfig() {
-        val minutes = ReminderStore.loadIntervalMinutes(getApplication())
-        _reminderIntervalMinutes.value = minutes
+        val intervals = ReminderStore.loadAppIntervals(getApplication())
+        _reminderIntervals.value = intervals
     }
 
     fun refreshApps() {
@@ -100,12 +100,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         )
     }
 
-    fun saveReminderConfig(intervalMinutes: Int, monitoredPackages: Set<String>) {
-        ReminderStore.saveIntervalMinutes(getApplication(), intervalMinutes)
-        ReminderStore.saveMonitoredPackages(getApplication(), monitoredPackages)
-        _reminderIntervalMinutes.value = intervalMinutes
+    fun saveReminderConfig(appIntervals: Map<String, Int>) {
+        ReminderStore.saveAppIntervals(getApplication(), appIntervals)
+        ReminderStore.saveMonitoredPackages(getApplication(), appIntervals.keys)
+        _reminderIntervals.value = appIntervals
         _monitoredApps.value = _monitoredApps.value?.map { app ->
-            app.copy(isMonitored = monitoredPackages.contains(app.packageName))
+            app.copy(isMonitored = appIntervals.containsKey(app.packageName))
         }
         refreshScreenTime()
     }

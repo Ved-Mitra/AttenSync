@@ -6,11 +6,11 @@ import androidx.core.content.ContextCompat
 import com.example.attensync.utilities.FocusTrackingService
 
 object ReminderScheduler {
-    fun applySettings(context: Context, intervalMinutes: Int, monitoredPackages: Set<String>) {
-        ReminderStore.saveIntervalMinutes(context, intervalMinutes)
-        ReminderStore.saveMonitoredPackages(context, monitoredPackages)
+    fun applySettings(context: Context, appIntervals: Map<String, Int>) {
+        ReminderStore.saveAppIntervals(context, appIntervals)
+        ReminderStore.saveMonitoredPackages(context, appIntervals.keys)
 
-        if (monitoredPackages.isEmpty() || intervalMinutes <= 0) {
+        if (appIntervals.isEmpty()) {
             stopTracking(context)
         } else {
             startTracking(context)
@@ -27,4 +27,3 @@ object ReminderScheduler {
         context.stopService(intent)
     }
 }
-

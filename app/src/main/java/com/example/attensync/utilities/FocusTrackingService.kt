@@ -24,8 +24,7 @@ class FocusTrackingService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
     private var isTracking = false
 
-    private var currentForegroundPackage: String? = null
-    private var currentForegroundSeconds = 0
+    private val appUsageSeconds = mutableMapOf<String, Int>()
     private val pollIntervalSeconds = 5
 
     override fun onCreate() {
@@ -46,31 +45,29 @@ class FocusTrackingService : Service() {
     private fun startTrackingLoop() {
         serviceScope.launch {
             while (isActive) {
-                val monitoredPackages = ReminderStore.loadMonitoredPackages(this@FocusTrackingService)
-                val intervalMinutes = ReminderStore.loadIntervalMinutes(this@FocusTrackingService)
-                val intervalSeconds = intervalMinutes * 60
+                val appIntervals = ReminderStore.loadAppIntervals(this@FocusTrackingService)
+                val monitoredPackages = appIntervals.keys
 
                 val foregroundApp = getForegroundPackageName()
-
-                if (foregroundApp != null
-                    && monitoredPackages.contains(foregroundApp)
-                    && intervalSeconds > 0
-                ) {
-                    if (currentForegroundPackage != foregroundApp) {
-                        currentForegroundPackage = foregroundApp
-                        currentForegroundSeconds = 0
+                if (foregroundApp != null && monitoredPackages.contains(foregroundApp)) {
+                    val intervalMinutes = appIntervals[foregroundApp] ?: 0
+                    val intervalSeconds = intervalMinutes * 60
+                    if (intervalSeconds > 0) {
+                        val updatedSeconds =
+                            (appUsageSeconds[foregroundApp] ?: 0) + pollIntervalSeconds
+                        if (updatedSeconds >= intervalSeconds) {
+                            Log.d("FocusTracker", "Reminder interval hit, pushing notification.")
+                            pushWarningNotification(foregroundApp)
+                            appUsageSeconds[foregroundApp] = updatedSeconds - intervalSeconds
+                        } else {
+                            appUsageSeconds[foregroundApp] = updatedSeconds
+                        }
                     }
-
-                    currentForegroundSeconds += pollIntervalSeconds
-                    if (currentForegroundSeconds >= intervalSeconds) {
-                        Log.d("FocusTracker", "Reminder interval hit, pushing notification.")
-                        pushWarningNotification(foregroundApp)
-                        currentForegroundSeconds = 0
-                    }
-                } else {
-                    currentForegroundPackage = null
-                    currentForegroundSeconds = 0
                 }
+
+                appUsageSeconds.keys
+                    .filter { it !in monitoredPackages }
+                    .forEach { appUsageSeconds.remove(it) }
 
                 delay(pollIntervalSeconds * 1000L)
             }

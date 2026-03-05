@@ -35,6 +35,36 @@
             android:layout_height="wrap_content"
             android:text="@string/topic_me" />
 
+        <RadioButton
+            android:id="@+id/topic_bioengineering"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/topic_bioengineering" />
+
+        <RadioButton
+            android:id="@+id/topic_physics"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/topic_physics" />
+
+        <RadioButton
+            android:id="@+id/topic_chemistry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/topic_chemistry" />
+
+        <RadioButton
+            android:id="@+id/topic_chemical_engineering"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/topic_chemical_engineering" />
+
+        <RadioButton
+            android:id="@+id/topic_materials_engineering"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/topic_materials_engineering" />
+
     </RadioGroup>
 
     <LinearLayout
@@ -49,7 +79,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/cancel" />
+            android:text="@string/cancel"
+            android:textColor="@android:color/white" />
 
         <Button
             android:id="@+id/ok_button"
@@ -57,7 +88,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/ok" />
+            android:text="@string/ok"
+            android:textColor="@android:color/white" />
 
     </LinearLayout>
 

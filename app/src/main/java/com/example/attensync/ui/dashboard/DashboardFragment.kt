@@ -1,6 +1,7 @@
 package com.example.attensync.ui.dashboard
 
 import android.app.AppOpsManager
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,8 +13,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.TimePicker
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -27,8 +26,9 @@ import com.example.attensync.R
 import com.example.attensync.databinding.FragmentDashboardBinding
 import com.example.attensync.utilities.reminder.MonitoredApp
 import com.example.attensync.utilities.reminder.ReminderScheduler
-import com.google.android.material.switchmaterial.SwitchMaterial
+import com.example.attensync.utilities.screentimer.ScreenTimeFormatter
 import com.google.firebase.auth.FirebaseAuth
+import java.util.concurrent.TimeUnit
 
 class DashboardFragment : Fragment() {
 
@@ -191,24 +191,40 @@ class DashboardFragment : Fragment() {
         val dialogView = LayoutInflater.from(requireContext())
             .inflate(R.layout.dialog_reminder_settings, null)
 
-        val timePicker = dialogView.findViewById<TimePicker>(R.id.reminderTimePicker)
-        val appsContainer = dialogView.findViewById<LinearLayout>(R.id.appsContainer)
-        val appsEmptyText = dialogView.findViewById<TextView>(R.id.appsEmptyText)
+        val list = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(
+            R.id.reminderAppsList
+        )
 
-        val intervalMinutes = viewModel.reminderIntervalMinutes.value ?: 30
-        val initialHours = intervalMinutes / 60
-        val initialMinutes = intervalMinutes % 60
+        val selectedIntervals =
+            viewModel.reminderIntervals.value?.toMutableMap() ?: mutableMapOf()
+        val usageByPackage = screenTimeState?.entries
+            ?.associate { it.packageName to it.timeText }
+            ?: emptyMap()
 
-        timePicker.setIs24HourView(true)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            timePicker.hour = initialHours
-            timePicker.minute = initialMinutes
-        } else {
-            @Suppress("DEPRECATION")
-            timePicker.currentHour = initialHours
-            @Suppress("DEPRECATION")
-            timePicker.currentMinute = initialMinutes
+        var currentApps: List<MonitoredApp> = emptyList()
+
+        lateinit var adapter: ReminderAppsSectionAdapter
+        adapter = ReminderAppsSectionAdapter(requireContext().packageManager) { item, isChecked ->
+            if (isChecked) {
+                val wasSelected = selectedIntervals.containsKey(item.packageName)
+                val initialMinutes = selectedIntervals[item.packageName] ?: 30
+                showAppTimePicker(item.label, initialMinutes, onTimeSet = { minutes ->
+                    selectedIntervals[item.packageName] = minutes
+                    updateReminderList(currentApps, selectedIntervals, usageByPackage, adapter)
+                }, onCancelled = {
+                    if (!wasSelected) {
+                        selectedIntervals.remove(item.packageName)
+                    }
+                    updateReminderList(currentApps, selectedIntervals, usageByPackage, adapter)
+                })
+            } else {
+                selectedIntervals.remove(item.packageName)
+                updateReminderList(currentApps, selectedIntervals, usageByPackage, adapter)
+            }
         }
+
+        list.layoutManager = LinearLayoutManager(requireContext())
+        list.adapter = adapter
 
         val dialog = AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.set_remider))
@@ -218,7 +234,8 @@ class DashboardFragment : Fragment() {
             .create()
 
         val observer = Observer<List<MonitoredApp>> { apps ->
-            renderAppSwitches(apps, appsContainer, appsEmptyText)
+            currentApps = apps
+            updateReminderList(currentApps, selectedIntervals, usageByPackage, adapter)
         }
         viewModel.monitoredApps.observe(viewLifecycleOwner, observer)
 
@@ -234,17 +251,8 @@ class DashboardFragment : Fragment() {
                     notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 }
 
-                val selectedPackages = collectSelectedPackages(appsContainer)
-                val selectedMinutes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    timePicker.hour * 60 + timePicker.minute
-                } else {
-                    @Suppress("DEPRECATION")
-                    timePicker.currentHour * 60 + timePicker.currentMinute
-                }
-                val safeMinutes = selectedMinutes.coerceAtLeast(1)
-
-                viewModel.saveReminderConfig(safeMinutes, selectedPackages)
-                ReminderScheduler.applySettings(requireContext(), safeMinutes, selectedPackages)
+                viewModel.saveReminderConfig(selectedIntervals)
+                ReminderScheduler.applySettings(requireContext(), selectedIntervals)
                 if (shouldRequestNotification) {
                     Toast.makeText(
                         requireContext(),
@@ -267,40 +275,104 @@ class DashboardFragment : Fragment() {
         viewModel.refreshApps()
     }
 
-    private fun renderAppSwitches(
+    private fun updateReminderList(
         apps: List<MonitoredApp>,
-        container: LinearLayout,
-        emptyText: TextView
+        selectedIntervals: Map<String, Int>,
+        usageByPackage: Map<String, String>,
+        adapter: ReminderAppsSectionAdapter
     ) {
-        container.removeAllViews()
-        if (apps.isEmpty()) {
-            emptyText.visibility = View.VISIBLE
-            return
-        }
-        emptyText.visibility = View.GONE
-
-        apps.forEach { app ->
-            val toggle = SwitchMaterial(requireContext()).apply {
-                text = app.label
-                isChecked = app.isMonitored
-                tag = app.packageName
-            }
-            container.addView(toggle)
-        }
+        adapter.submitList(buildReminderSectionedItems(apps, selectedIntervals, usageByPackage))
     }
 
-    private fun collectSelectedPackages(container: LinearLayout): Set<String> {
-        val selected = mutableSetOf<String>()
-        for (i in 0 until container.childCount) {
-            val view = container.getChildAt(i)
-            if (view is SwitchMaterial && view.isChecked) {
-                val packageName = view.tag as? String
-                if (packageName != null) {
-                    selected.add(packageName)
-                }
+    private fun buildReminderSectionedItems(
+        apps: List<MonitoredApp>,
+        selectedIntervals: Map<String, Int>,
+        usageByPackage: Map<String, String>
+    ): List<ReminderListItem> {
+        val (selectedItems, otherItems) = buildReminderUiLists(
+            apps,
+            selectedIntervals,
+            usageByPackage
+        )
+        val items = mutableListOf<ReminderListItem>()
+        items.add(ReminderListItem.Header("selected", getString(R.string.reminder_selected_apps)))
+        if (selectedItems.isEmpty()) {
+            items.add(ReminderListItem.Note("selected_empty", getString(R.string.reminder_selected_empty)))
+        } else {
+            selectedItems.forEach { items.add(ReminderListItem.App(it)) }
+        }
+        items.add(ReminderListItem.Header("other", getString(R.string.reminder_other_apps)))
+        if (otherItems.isEmpty()) {
+            items.add(ReminderListItem.Note("other_empty", getString(R.string.reminder_other_empty)))
+        } else {
+            otherItems.forEach { items.add(ReminderListItem.App(it)) }
+        }
+        return items
+    }
+
+    private fun buildReminderUiLists(
+        apps: List<MonitoredApp>,
+        selectedIntervals: Map<String, Int>,
+        usageByPackage: Map<String, String>
+    ): Pair<List<ReminderAppUi>, List<ReminderAppUi>> {
+        val selectedItems = mutableListOf<ReminderAppUi>()
+        val otherItems = mutableListOf<ReminderAppUi>()
+
+        apps.forEach { app ->
+            val isSelected = selectedIntervals.containsKey(app.packageName)
+            val usageText = getString(
+                R.string.reminder_usage_format,
+                usageByPackage[app.packageName] ?: getString(R.string.reminder_usage_empty)
+            )
+            val limitText = if (isSelected) {
+                val minutes = selectedIntervals[app.packageName] ?: 0
+                getString(R.string.reminder_limit_format, formatMinutes(minutes))
+            } else {
+                null
+            }
+            val item = ReminderAppUi(
+                packageName = app.packageName,
+                label = app.label,
+                usageText = usageText,
+                limitText = limitText,
+                isSelected = isSelected
+            )
+            if (isSelected) {
+                selectedItems.add(item)
+            } else {
+                otherItems.add(item)
             }
         }
-        return selected
+
+        return selectedItems to otherItems
+    }
+
+    private fun showAppTimePicker(
+        appLabel: String,
+        initialMinutes: Int,
+        onTimeSet: (Int) -> Unit,
+        onCancelled: () -> Unit
+    ) {
+        val hours = initialMinutes / 60
+        val minutes = initialMinutes % 60
+        val dialog = TimePickerDialog(
+            requireContext(),
+            { _, hourOfDay, minute ->
+                val totalMinutes = (hourOfDay * 60 + minute).coerceAtLeast(1)
+                onTimeSet(totalMinutes)
+            },
+            hours,
+            minutes,
+            true
+        )
+        dialog.setTitle(getString(R.string.reminder_time_picker_title, appLabel))
+        dialog.setOnCancelListener { onCancelled() }
+        dialog.show()
+    }
+
+
+    private fun formatMinutes(minutes: Int): String {
+        return ScreenTimeFormatter.formatDuration(TimeUnit.MINUTES.toMillis(minutes.toLong()))
     }
 
     private fun hasNotificationPermission(): Boolean {

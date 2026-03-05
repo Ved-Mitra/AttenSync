@@ -25,6 +25,11 @@ class ChangeTopicDialogFragment : DialogFragment() {
             "Computer Science" -> binding.topicCs.isChecked = true
             "Electrical Engineering" -> binding.topicEe.isChecked = true
             "Mechanical Engineering" -> binding.topicMe.isChecked = true
+            "Bioengineering" -> binding.topicBioengineering.isChecked = true
+            "Physics" -> binding.topicPhysics.isChecked = true
+            "Chemistry" -> binding.topicChemistry.isChecked = true
+            "Chemical Engineering" -> binding.topicChemicalEngineering.isChecked = true
+            "Materials Engineering" -> binding.topicMaterialsEngineering.isChecked = true
         }
 
         val dialog = AlertDialog.Builder(requireContext())
@@ -37,6 +42,11 @@ class ChangeTopicDialogFragment : DialogFragment() {
                 binding.topicCs.id -> "Computer Science"
                 binding.topicEe.id -> "Electrical Engineering"
                 binding.topicMe.id -> "Mechanical Engineering"
+                binding.topicBioengineering.id -> "Bioengineering"
+                binding.topicPhysics.id -> "Physics"
+                binding.topicChemistry.id -> "Chemistry"
+                binding.topicChemicalEngineering.id -> "Chemical Engineering"
+                binding.topicMaterialsEngineering.id -> "Materials Engineering"
                 else -> "General"
             }
             sharedPreferences.edit().putString("topic", newTopic).apply()

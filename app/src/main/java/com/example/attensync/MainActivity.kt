@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
@@ -106,6 +107,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleSignOut() {
+        auth.signOut()
+        googleSignInClient.signOut().addOnCompleteListener {
+            updateNavigationHeader()
+            Toast.makeText(this, "Signed out", Toast.LENGTH_SHORT).show()
+            signInLauncher.launch(googleSignInClient.signInIntent)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -149,11 +159,31 @@ class MainActivity : AppCompatActivity() {
 
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.nav_dashboard, R.id.nav_calender, R.id.nav_discussion, R.id.nav_notification, R.id.nav_report, R.id.nav_leaderboard, R.id.nav_redeem
+                R.id.nav_dashboard,
+                R.id.nav_calender,
+                R.id.nav_discussion,
+                R.id.nav_notification,
+                R.id.nav_report,
+                R.id.nav_leaderboard,
+                R.id.nav_redeem
             ), drawerLayout
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+
+        navView.setNavigationItemSelectedListener { item ->
+            if (item.itemId == R.id.nav_sign_out) {
+                handleSignOut()
+                drawerLayout.closeDrawers()
+                true
+            } else {
+                val handled = NavigationUI.onNavDestinationSelected(item, navController)
+                if (handled) {
+                    drawerLayout.closeDrawers()
+                }
+                handled
+            }
+        }
 
         if (auth.currentUser == null) {
             if (savedInstanceState == null) {
