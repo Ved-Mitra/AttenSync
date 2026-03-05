@@ -51,17 +51,16 @@ class DiscussionViewModel : ViewModel() {
         _messages.postValue(currentMessages + message)
     }
 
-    fun sendMessage(text: String) {
-        val currentTopic = _topic.value ?: return // Don't send if no topic is set
-        val message = Message(text, "You", System.currentTimeMillis())
-        addMessage(message)
-
+    fun sendMessage(messageContent: String, topic: String, userName: String) {
         val messageData = JSONObject().apply {
-            put("text", text)
-            put("sender", "You") // You'll likely replace this with a real user ID
-            put("topic", currentTopic)
+            put("topic", topic)
+            put("message", messageContent)
+            put("user", userName)
+            put("timestamp", System.currentTimeMillis())
         }
-        socket.emit("new message", messageData)
+
+        // Emit the object containing the topic
+        socket.emit("chat message", messageData)
     }
 
     override fun onCleared() {

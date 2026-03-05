@@ -72,8 +72,8 @@ dependencies {
     implementation(libs.socket.io.client) {
         exclude(group = "org.json", module = "json")
     }
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    implementation("com.google.code.gson:gson:2.11.0")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.gson)
+    implementation(libs.androidx.swiperefreshlayout)
 }
